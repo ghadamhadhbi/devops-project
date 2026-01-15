@@ -148,43 +148,129 @@ git push origin main
 View pipeline status: GitHub Actions tab
 
 ## Architecture
+### Complete DevOps Pipeline
+```mermaid
+flowchart TD
 
+%% =======================
+%% LAYER 1: SOURCE CODE
+%% =======================
+subgraph L1["🧩 CODE LAYER - Source Control"]
+    direction TB
+    G[📦 GitHub Repository]
+    
+    G --> A["app.py - FastAPI Application"]
+    G --> B["Dockerfile - Container Definition"]
+    G --> C["k8s/ - Kubernetes Manifests"]
+    G --> D[".github/workflows - CI/CD Pipeline"]
+end
+
+%% =======================
+%% TRANSITION
+%% =======================
+T1["git push / pull request"]
+
+%% =======================
+%% LAYER 2: CI/CD
+%% =======================
+subgraph L2["⚙️ CI/CD PIPELINE - GitHub Actions"]
+    direction TB
+    CI[GitHub Actions]
+    
+    CI --> TST["🧪 Tests - Pytest"]
+    CI --> SAST["🔒 SAST - Bandit"]
+    CI --> BUILD["🔨 Build - Docker Image"]
+    CI --> DAST["🛡️ DAST - OWASP ZAP"]
+end
+
+%% =======================
+%% TRANSITION
+%% =======================
+T2["docker push"]
+
+%% =======================
+%% LAYER 3: REGISTRY
+%% =======================
+subgraph L3["📦 CONTAINER REGISTRY"]
+    direction TB
+    R[Docker Hub]
+    R --> IMG1["fastapi-devops:latest"]
+    R --> IMG2["fastapi-devops:commit-sha"]
+end
+
+%% =======================
+%% TRANSITION
+%% =======================
+T3["kubectl apply"]
+
+%% =======================
+%% LAYER 4: KUBERNETES
+%% =======================
+subgraph L4["☸️ KUBERNETES CLUSTER"]
+    direction TB
+    
+    CFG["ConfigMap - Environment Config"]
+    DEP["Deployment - Replicas: 2-5"]
+    POD1["Pod 1 - FastAPI Container"]
+    POD2["Pod 2 - FastAPI Container"]
+    SVC["Service - NodePort: 30080"]
+    HPA["HPA - Auto-scaling"]
+    
+    CFG --> DEP
+    DEP --> POD1
+    DEP --> POD2
+    POD1 --> SVC
+    POD2 --> SVC
+    HPA -.->|scales| DEP
+end
+
+%% =======================
+%% TRANSITION
+%% =======================
+T4["HTTP Requests"]
+
+%% =======================
+%% LAYER 5: OBSERVABILITY & ACCESS
+%% =======================
+subgraph L5["🌐 APPLICATION & MONITORING"]
+    direction TB
+    
+    API["FastAPI Endpoints - /health /tasks /metrics"]
+    
+    OBS["📊 Observability - Metrics + Logs + Tracing"]
+    
+    U["👥 Users / Clients"]
+    
+    U --> API
+    API -.->|emits| OBS
+end
+
+%% =======================
+%% FLOW CONNECTIONS
+%% =======================
+L1 --> T1
+T1 --> L2
+L2 --> T2
+T2 --> L3
+L3 --> T3
+T3 --> L4
+L4 --> T4
+T4 --> L5
+
+%% =======================
+%% STYLING
+%% =======================
+classDef layer fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+classDef component fill:#ffffff,stroke:#90caf9,stroke-width:2px
+classDef transition fill:#fff3e0,stroke:#ff9800,stroke-width:2px,stroke-dasharray:5 5
+classDef highlight fill:#c8e6c9,stroke:#388e3c,stroke-width:3px
+
+class L1,L2,L3,L4,L5 layer
+class G,A,B,C,D,CI,TST,SAST,BUILD,DAST,R,IMG1,IMG2,CFG,POD1,POD2,API,OBS,U component
+class T1,T2,T3,T4 transition
+class DEP,SVC,HPA highlight
 ```
-┌─────────────┐
-│   Client    │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────────┐
-│  Kubernetes     │
-│   Service       │
-│  (NodePort)     │
-└────────┬────────┘
-         │
-    ┌────▼────┐
-    │   HPA   │
-    └────┬────┘
-         │
-    ┌────▼────────┐
-    │ Deployment  │
-    │  (2-5 pods) │
-    └────┬────────┘
-         │
-    ┌────▼──────┐
-    │  FastAPI  │
-    │   Pods    │
-    └────┬──────┘
-         │
-    ┌────▼───────┐
-    │ Prometheus │
-    │  (metrics) │
-    └────────────┘
-         │
-    ┌────▼───────┐
-    │  Grafana   │
-    │(dashboards)│
-    └────────────┘
-```
+
 
 ## Technologies Used
 - **Backend**: FastAPI, Pydantic, Uvicorn
@@ -194,6 +280,8 @@ View pipeline status: GitHub Actions tab
 - **CI/CD**: GitHub Actions
 - **Security**: Bandit (SAST), OWASP ZAP (DAST)
 - **Monitoring**: prometheus-client
+
+
 
 ## Project Structure
 ```
