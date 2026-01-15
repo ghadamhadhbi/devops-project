@@ -114,12 +114,7 @@ curl http://localhost:30080/metrics
 - Request tracing with unique trace IDs
 - Log levels: INFO, WARNING, ERROR
 
-### Dashboards
-Access Grafana at http://localhost:30030 to view:
-- Request rate trends
-- Response time percentiles
-- Error rates
-- Request distribution by status code
+
 
 ## Security
 
