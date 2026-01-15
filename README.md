@@ -1,184 +1,231 @@
-# 🛠️ DevOps Project – Task Management API
+# FastAPI Task Management - DevOps Project
 
-## 📌 Project Overview
+## Overview
+A production-ready FastAPI application demonstrating DevOps best practices including CI/CD, containerization, Kubernetes deployment, observability, and security scanning.
 
-This project is a complete **end-to-end DevOps implementation** of a lightweight backend REST API built with **FastAPI**.  
-The goal is to apply modern DevOps practices from development to **CI/CD automation, containerization, observability, security, and Kubernetes deployment**.
+## Features
+- RESTful API for task management
+- Prometheus metrics exposure
+- Structured logging with trace IDs
+- Docker containerization
+- Kubernetes deployment with auto-scaling
+- CI/CD pipeline with security scans
+- Grafana dashboards for monitoring
 
-The application provides a simple **Task Management API**.
+## Prerequisites
+- Docker Desktop with Kubernetes enabled
+- Python 3.11+
+- kubectl CLI
+- Git
 
----
+## Local Development
 
-## 🎯 Project Objectives
+### Running with Python
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-- Build a small backend REST API (<150 lines of code)
-- Use Git & GitHub with issues, pull requests, and reviews
-- Implement CI/CD using GitHub Actions
-- Add observability (metrics, logs, tracing)
-- Perform security scans (SAST + DAST)
-- Containerize using Docker & Docker Compose
-- Deploy on Kubernetes (Minikube/Kind)
-- Document the project and present results
+# Run the application
+uvicorn app:app --reload --port 8000
 
+# Test the API
+curl http://localhost:8000/health
+```
 
+### Running with Docker Compose
+```bash
+# Build and start
+docker-compose up -d
 
-## 🧪 Backend Service
+# View logs
+docker-compose logs -f
 
-### Technology
-- **FastAPI** (Python)
-- **Pydantic** for data validation
-- **Prometheus client** for metrics
+# Stop
+docker-compose down
+```
 
-### API Endpoints
+## Kubernetes Deployment
 
-| Method | Endpoint      | Description        |
-|--------|---------------|--------------------|
-| GET    | `/`           | API information    |
-| GET    | `/health`     | Health check       |
-| GET    | `/tasks`      | List all tasks     |
-| POST   | `/tasks`      | Create a task      |
-| GET    | `/tasks/{id}` | Get task by ID     |
-| DELETE | `/tasks/{id}` | Delete task        |
-| GET    | `/metrics`    | Prometheus metrics |
+### Deploy to Local Cluster
+```bash
+# Apply all manifests
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/hpa.yaml
 
----
+# Deploy monitoring
+kubectl apply -f k8s/prometheus/
+kubectl apply -f k8s/grafana/
 
-## 📊 Observability
+# Verify deployment
+kubectl get pods -n fastapi-app
+```
+
+### Access Services
+- **API**: http://localhost:30080
+- **Prometheus**: http://localhost:30090
+- **Grafana**: http://localhost:30030 (admin/admin123)
+
+## API Endpoints
+
+### Create Task
+```bash
+curl -X POST http://localhost:30080/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title": "My Task", "description": "Task description"}'
+```
+
+### Get All Tasks
+```bash
+curl http://localhost:30080/tasks
+```
+
+### Get Specific Task
+```bash
+curl http://localhost:30080/tasks/1
+```
+
+### Delete Task
+```bash
+curl -X DELETE http://localhost:30080/tasks/1
+```
+
+### Health Check
+```bash
+curl http://localhost:30080/health
+```
 
 ### Metrics
-Exposed via `/metrics` (Prometheus format):
-- HTTP request count
-- Request duration
-- Requests per endpoint
+```bash
+curl http://localhost:30080/metrics
+```
+
+## Observability
+
+### Metrics
+- Request count by endpoint, method, and status
+- Request duration histograms
+- Available at `/metrics` endpoint
 
 ### Logs
-- Structured logging with Python `logging`
-- Includes method, endpoint, status code, duration, and `trace_id`
+- Structured JSON logging
+- Request tracing with unique trace IDs
+- Log levels: INFO, WARNING, ERROR
 
-### Tracing
-Lightweight request tracing using a unique UUID per request (log correlation).
+### Dashboards
+Access Grafana at http://localhost:30030 to view:
+- Request rate trends
+- Response time percentiles
+- Error rates
+- Request distribution by status code
 
----
+## Security
 
-## 🔐 Security
-
-### SAST – Static Application Security Testing
-- Tool: **Bandit**
-- Runs in CI; reports uploaded as artifacts
-
-### DAST – Dynamic Application Security Testing
-- Tool: **OWASP ZAP Baseline**
-- Scans the running Docker container
-- Reports in HTML & JSON
-
----
-
-## 🐳 Containerization
-
-### Docker
-- Base image: `python:3.11-slim`
-- Runs as non-root user
-- Built-in health check
-
-### Docker Compose (local development)
+### SAST (Static Analysis)
 ```bash
-docker compose up --build
+pip install bandit
+bandit -r app.py
 ```
-Application available at: **http://localhost:8000**
 
----
+### DAST (Dynamic Analysis)
+Automatically run in CI/CD pipeline using OWASP ZAP
 
-## ⚙️ CI/CD Pipeline (GitHub Actions)
+## CI/CD Pipeline
 
 ### Stages
-1. **Tests** – Pytest + test report
-2. **Security – SAST** – Bandit
-3. **Build & Push** – Docker image → Docker Hub
-4. **Security – DAST** – OWASP ZAP
+1. **Test**: Run pytest test suite
+2. **SAST**: Bandit security scan
+3. **Build**: Docker image build and push
+4. **DAST**: OWASP ZAP security scan
 
-**Triggers**: `push` to `main` and pull requests.
-
----
-
-## ☸️ Kubernetes Deployment
-
-### Resources
-- Namespace
-- Deployment (replicas, rolling updates)
-- Service (NodePort)
-- ConfigMap
-- Startup/readiness/liveness probes
-- Horizontal Pod Autoscaler (HPA – CPU & memory)
-
-### Apply
+### Triggering
 ```bash
-kubectl apply -f k8s/
+git push origin main
 ```
 
-### Access
-```bash
-minikube service fastapi-service -n fastapi-app
+View pipeline status: GitHub Actions tab
+
+## Architecture
+
+```
+┌─────────────┐
+│   Client    │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────┐
+│  Kubernetes     │
+│   Service       │
+│  (NodePort)     │
+└────────┬────────┘
+         │
+    ┌────▼────┐
+    │   HPA   │
+    └────┬────┘
+         │
+    ┌────▼────────┐
+    │ Deployment  │
+    │  (2-5 pods) │
+    └────┬────────┘
+         │
+    ┌────▼──────┐
+    │  FastAPI  │
+    │   Pods    │
+    └────┬──────┘
+         │
+    ┌────▼───────┐
+    │ Prometheus │
+    │  (metrics) │
+    └────────────┘
+         │
+    ┌────▼───────┐
+    │  Grafana   │
+    │(dashboards)│
+    └────────────┘
 ```
 
----
+## Technologies Used
+- **Backend**: FastAPI, Pydantic, Uvicorn
+- **Containerization**: Docker, Docker Compose
+- **Orchestration**: Kubernetes
+- **Observability**: Prometheus, Grafana
+- **CI/CD**: GitHub Actions
+- **Security**: Bandit (SAST), OWASP ZAP (DAST)
+- **Monitoring**: prometheus-client
 
-## 📈 Monitoring Stack (Prometheus + Grafana)
-
-- **Prometheus** scrapes `/metrics` (namespace: `monitoring`)
-- **Grafana** dashboards show request rate, latency, and per-endpoint metrics
-
-### Access Grafana
-```bash
-minikube service grafana -n monitoring
-```
-Default credentials: `admin` / `admin`
-
----
-
-## 📁 Repository Structure
-
+## Project Structure
 ```
 .
-├── app.py
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
+├── app.py                      # Main application
+├── requirements.txt            # Python dependencies
+├── Dockerfile                  # Container definition
+├── docker-compose.yml          # Local development
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yaml         # CI/CD pipeline
 ├── k8s/
+│   ├── namespace.yaml
+│   ├── configmap.yaml
 │   ├── deployment.yaml
 │   ├── service.yaml
-│   ├── configmap.yaml
-│   └── hpa.yaml
-├── .github/workflows/
-│   └── ci-cd.yml
-└── README.md
+│   ├── hpa.yaml
+│   ├── prometheus/
+│   └── grafana/
+└── tests/
+    └── test_app.py            # Test suite
 ```
 
----
+## Cleanup
+```bash
+# Delete Kubernetes resources
+kubectl delete namespace fastapi-app
 
-## 📦 Docker Image
+# Stop Docker Compose
+docker-compose down -v
+```
 
-Published on Docker Hub:  
-**`ghadamh/fastapi-devops:latest`**
+## Author
+Ghada MHADHBI
 
----
-
-## 📘 Lessons Learned
-
-- Importance of health checks and probes in Kubernetes
-- Difference between liveness and readiness probes
-- CI/CD pipelines improve reliability and security
-- Observability is essential for production systems
-- Kubernetes enables scalability and resilience
-
----
-
-## 🎓 Conclusion
-
-This project demonstrates core DevOps principles including automation, security, monitoring, and container orchestration in a realistic yet educational pipeline.
-
----
-
-## 🙌 Author
-
-**Ghada Mhadhbi**  
-DevOps & Software Engineering Student
