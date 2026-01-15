@@ -1,0 +1,192 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: fastapi-app
+data:
+  prometheus.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-service:9090
+        isDefault: true
+        editable: true
+        jsonData:
+          timeInterval: "15s"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-config
+  namespace: fastapi-app
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 10
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard
+  namespace: fastapi-app
+data:
+  fastapi-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "FastAPI Application Metrics",
+        "tags": ["fastapi", "python"],
+        "timezone": "browser",
+        "schemaVersion": 16,
+        "version": 1,
+        "refresh": "10s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Request Rate",
+            "type": "graph",
+            "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+            "targets": [
+              {
+                "expr": "rate(http_requests_total[5m])",
+                "legendFormat": "{{method}} {{endpoint}} - {{status}}"
+              }
+            ],
+            "yaxes": [
+              {"format": "reqps", "label": "Requests/sec"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Request Duration (95th percentile)",
+            "type": "graph",
+            "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "{{method}} {{endpoint}}"
+              }
+            ],
+            "yaxes": [
+              {"format": "s", "label": "Duration"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Total Requests",
+            "type": "stat",
+            "gridPos": {"x": 0, "y": 8, "w": 6, "h": 4},
+            "targets": [
+              {
+                "expr": "sum(http_requests_total)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": 0, "color": "green"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "Error Rate",
+            "type": "stat",
+            "gridPos": {"x": 6, "y": 8, "w": 6, "h": 4},
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m]))"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": 0, "color": "green"},
+                    {"value": 0.01, "color": "yellow"},
+                    {"value": 0.1, "color": "red"}
+                  ]
+                },
+                "unit": "reqps"
+              }
+            }
+          },
+          {
+            "id": 5,
+            "title": "Average Response Time",
+            "type": "stat",
+            "gridPos": {"x": 12, "y": 8, "w": 6, "h": 4},
+            "targets": [
+              {
+                "expr": "rate(http_request_duration_seconds_sum[5m]) / rate(http_request_duration_seconds_count[5m])"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": 0, "color": "green"},
+                    {"value": 0.5, "color": "yellow"},
+                    {"value": 1, "color": "red"}
+                  ]
+                },
+                "unit": "s"
+              }
+            }
+          },
+          {
+            "id": 6,
+            "title": "Requests by Status Code",
+            "type": "piechart",
+            "gridPos": {"x": 18, "y": 8, "w": 6, "h": 4},
+            "targets": [
+              {
+                "expr": "sum by (status) (http_requests_total)",
+                "legendFormat": "{{status}}"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "title": "Request Duration Heatmap",
+            "type": "heatmap",
+            "gridPos": {"x": 0, "y": 12, "w": 24, "h": 8},
+            "targets": [
+              {
+                "expr": "sum(increase(http_request_duration_seconds_bucket[1m])) by (le)",
+                "format": "heatmap",
+                "legendFormat": "{{le}}"
+              }
+            ],
+            "yAxis": {
+              "format": "s"
+            }
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        }
+      }
+    }
